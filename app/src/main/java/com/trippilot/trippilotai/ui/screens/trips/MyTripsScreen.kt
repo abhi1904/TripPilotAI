@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Luggage
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Card
@@ -25,9 +26,12 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -63,7 +67,7 @@ fun MyTripsScreen(
     viewModel: MyTripsViewModel = viewModel(factory = MyTripsViewModel.Factory),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    MyTripsContent(state, viewModel::setFilter, onTripClick, onPlanTrip, viewModel::clearAll, viewModel::restoreSamples)
+    MyTripsContent(state, viewModel::setFilter, onTripClick, onPlanTrip, viewModel::clearAll, viewModel::restoreSamples, viewModel::retry)
 }
 
 @Composable
@@ -74,6 +78,7 @@ fun MyTripsContent(
     onPlanTrip: () -> Unit,
     onDevClear: () -> Unit,
     onDevRestore: () -> Unit,
+    onRetry: () -> Unit,
 ) {
     Scaffold(
         topBar = {
@@ -83,12 +88,22 @@ fun MyTripsContent(
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
+            if (state.isSyncing) {
+                LinearProgressIndicator(Modifier.fillMaxWidth())
+            }
+            state.syncError?.let { message ->
+                SyncErrorCard(message, onRetry, Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp))
+            }
             Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TripFilter.entries.forEach { filter ->
                     FilterChip(selected = state.filter == filter, onClick = { onFilterChange(filter) }, label = { Text(filter.label) })
                 }
             }
-            if (state.trips.isEmpty()) {
+            if (state.trips.isEmpty() && state.isSyncing) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Loading your trips…", style = MaterialTheme.typography.bodyMedium)
+                }
+            } else if (state.trips.isEmpty()) {
                 EmptyState(
                     icon = Icons.Default.Luggage,
                     title = if (state.hasAnyTrips) "No ${state.filter.label.lowercase()} trips" else "No trips yet",
@@ -111,6 +126,23 @@ fun MyTripsContent(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun SyncErrorCard(message: String, onRetry: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        color = MaterialTheme.colorScheme.errorContainer,
+        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        shape = MaterialTheme.shapes.small,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Row(Modifier.padding(start = 14.dp, end = 4.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.CloudOff, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(10.dp))
+            Text(message, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            TextButton(onClick = onRetry) { Text("Retry") }
         }
     }
 }
@@ -172,12 +204,23 @@ fun TripTimingPill(isCompleted: Boolean) {
 @Composable
 private fun MyTripsPreview() {
     TripPilotAITheme {
-        MyTripsContent(MyTripsUiState(trips = listOf(PreviewData.trip), hasAnyTrips = true, todayMillis = 0), {}, {}, {}, {}, {})
+        MyTripsContent(MyTripsUiState(trips = listOf(PreviewData.trip), hasAnyTrips = true, todayMillis = 0), {}, {}, {}, {}, {}, {})
     }
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun MyTripsEmptyPreview() {
-    TripPilotAITheme { MyTripsContent(MyTripsUiState(), {}, {}, {}, {}, {}) }
+    TripPilotAITheme { MyTripsContent(MyTripsUiState(), {}, {}, {}, {}, {}, {}) }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun MyTripsSyncErrorPreview() {
+    TripPilotAITheme {
+        MyTripsContent(
+            MyTripsUiState(syncError = "Couldn't load your trips. Can't reach the server — is the backend running?"),
+            {}, {}, {}, {}, {}, {},
+        )
+    }
 }

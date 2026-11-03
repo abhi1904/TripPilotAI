@@ -1,5 +1,7 @@
 package com.trippilot.trippilotai.domain.model
 
+import kotlinx.serialization.Serializable
+
 /** Visual style used to draw a destination's scenic artwork. */
 enum class Scene { BEACH, MOUNTAIN, DESERT, BACKWATERS, ISLAND, TEMPLE_CITY }
 
@@ -13,6 +15,7 @@ enum class Interest(val label: String) {
 }
 
 /** A reusable activity idea for a destination, tagged with the interest it serves. */
+@Serializable
 data class ActivityTemplate(
     val interest: Interest,
     val title: String,
@@ -21,6 +24,7 @@ data class ActivityTemplate(
 )
 
 /** Mock destination. All amounts are illustrative INR estimates, not live prices. */
+@Serializable
 data class Destination(
     val id: String,
     val name: String,

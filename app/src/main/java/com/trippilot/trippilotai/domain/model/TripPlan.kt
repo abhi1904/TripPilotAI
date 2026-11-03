@@ -1,6 +1,9 @@
 package com.trippilot.trippilotai.domain.model
 
+import kotlinx.serialization.Serializable
+
 /** What the traveller asked for on the Plan Trip screen. Dates are UTC-midnight epoch millis. */
+@Serializable
 data class TripRequest(
     val destinationName: String,
     val startDateMillis: Long,
@@ -20,6 +23,7 @@ data class TripRequest(
 
 enum class ActivityCategory { TRAVEL, STAY, NATURE, CULTURE, FOOD, ADVENTURE, RELAXATION, SHOPPING }
 
+@Serializable
 data class Activity(
     val time: String,
     val title: String,
@@ -28,6 +32,7 @@ data class Activity(
     val costPerPerson: Int,
 )
 
+@Serializable
 data class ItineraryDay(
     val dayNumber: Int,
     val dateMillis: Long,
@@ -45,13 +50,16 @@ enum class BudgetCategory(val label: String) {
     OTHER("Other"),
 }
 
+@Serializable
 data class BudgetItem(val category: BudgetCategory, val amount: Int, val note: String)
 
+@Serializable
 data class BudgetEstimate(val items: List<BudgetItem>) {
     val total: Int get() = items.sumOf { it.amount }
 }
 
 /** A generated (mock) plan: the request, its day-by-day itinerary and its cost estimate. */
+@Serializable
 data class TripPlan(
     val id: String,
     val request: TripRequest,
