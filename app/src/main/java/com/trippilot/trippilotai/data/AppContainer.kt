@@ -13,7 +13,9 @@ import com.trippilot.trippilotai.domain.repository.TripRepository
  * Manual dependency wiring for Phase 1. Every dependency is a local mock;
  * swap implementations here when real data sources arrive.
  */
-object AppContainer {
+object AppContainer
+{
+
     private val mockGenerator = MockItineraryGenerator()
 
     val itineraryGenerator: ItineraryGenerator = mockGenerator
