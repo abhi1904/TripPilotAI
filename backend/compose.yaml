@@ -1,0 +1,16 @@
+# Optional: run PostgreSQL in Docker with `docker compose up -d` (from this folder).
+# If you installed PostgreSQL another way (e.g. Postgres.app), you don't need this file.
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: trippilot
+      POSTGRES_USER: trippilot
+      POSTGRES_PASSWORD: trippilot
+    ports:
+      - "5432:5432"
+    volumes:
+      - trippilot-data:/var/lib/postgresql/data
+
+volumes:
+  trippilot-data:
