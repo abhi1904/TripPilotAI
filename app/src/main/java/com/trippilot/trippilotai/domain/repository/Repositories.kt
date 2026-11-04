@@ -1,5 +1,6 @@
 package com.trippilot.trippilotai.domain.repository
 
+import com.trippilot.trippilotai.domain.model.DestinationSuggestion
 import com.trippilot.trippilotai.domain.model.PaymentMethod
 import com.trippilot.trippilotai.domain.model.PaymentStatus
 import com.trippilot.trippilotai.domain.model.Trip
@@ -9,6 +10,10 @@ import kotlinx.coroutines.flow.StateFlow
 
 // Phase 1 ships mock implementations of these interfaces (see data/mock).
 // Later phases can swap in backend/AI-backed implementations without touching the UI.
+
+interface DestinationSearch {
+    suspend fun search(query: String): List<DestinationSuggestion>
+}
 
 interface ItineraryGenerator {
     suspend fun generate(request: TripRequest): TripPlan

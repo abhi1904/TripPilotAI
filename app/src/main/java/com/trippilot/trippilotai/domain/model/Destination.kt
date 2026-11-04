@@ -23,6 +23,9 @@ data class ActivityTemplate(
     val costPerPerson: Int,
 )
 
+/** A place offered while the user types a destination. */
+data class DestinationSuggestion(val name: String, val region: String)
+
 /** Mock destination. All amounts are illustrative INR estimates, not live prices. */
 @Serializable
 data class Destination(

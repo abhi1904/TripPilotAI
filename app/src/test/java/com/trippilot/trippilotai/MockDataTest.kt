@@ -1,6 +1,7 @@
 package com.trippilot.trippilotai
 
 import com.trippilot.trippilotai.data.mock.InMemoryTripRepository
+import com.trippilot.trippilotai.data.mock.MockDestinations
 import com.trippilot.trippilotai.data.mock.MockItineraryGenerator
 import com.trippilot.trippilotai.domain.model.ActivityCategory
 import com.trippilot.trippilotai.domain.model.Interest
@@ -22,6 +23,23 @@ class MockDataTest {
 
     private fun request(days: Int = 4, interests: Set<Interest> = setOf(Interest.FOOD)) =
         TripRequest("Goa", start, start + (days - 1) * day, 2, 20_000, 80_000, interests)
+
+    @Test
+    fun destinationSearch_matchesNameAndRegion_namePrefixFirst() {
+        assertEquals(listOf("Goa"), MockDestinations.search(" go ").map { it.name })
+        assertEquals(listOf("Alleppey"), MockDestinations.search("kerala").map { it.name })
+        assertEquals(
+            listOf("Alleppey", "Goa", "Manali", "Jaipur", "Bali", "Kyoto"),
+            MockDestinations.search("a").map { it.name },
+        )
+    }
+
+    @Test
+    fun destinationSearch_isEmptyForBlankExactOrUnknownInput() {
+        assertTrue(MockDestinations.search("  ").isEmpty())
+        assertTrue(MockDestinations.search("goa").isEmpty())
+        assertTrue(MockDestinations.search("zzz").isEmpty())
+    }
 
     @Test
     fun itinerary_hasOneEntryPerDay_withArrivalAndDeparture() {

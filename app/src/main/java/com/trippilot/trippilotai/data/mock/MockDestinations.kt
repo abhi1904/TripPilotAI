@@ -2,6 +2,7 @@ package com.trippilot.trippilotai.data.mock
 
 import com.trippilot.trippilotai.domain.model.ActivityTemplate
 import com.trippilot.trippilotai.domain.model.Destination
+import com.trippilot.trippilotai.domain.model.DestinationSuggestion
 import com.trippilot.trippilotai.domain.model.Interest
 import com.trippilot.trippilotai.domain.model.Interest.ADVENTURE
 import com.trippilot.trippilotai.domain.model.Interest.CULTURE
@@ -10,6 +11,7 @@ import com.trippilot.trippilotai.domain.model.Interest.NATURE
 import com.trippilot.trippilotai.domain.model.Interest.RELAXATION
 import com.trippilot.trippilotai.domain.model.Interest.SHOPPING
 import com.trippilot.trippilotai.domain.model.Scene
+import com.trippilot.trippilotai.domain.repository.DestinationSearch
 
 /** Local, hard-coded destinations. Prices are illustrative INR estimates only. */
 object MockDestinations {
@@ -111,6 +113,18 @@ object MockDestinations {
     fun byName(name: String): Destination? =
         all.firstOrNull { it.name.equals(name.trim(), ignoreCase = true) || it.id.equals(name.trim(), ignoreCase = true) }
 
+    /**
+     * Destinations whose name or region contains [query], names starting with it first.
+     * Empty for a blank query or one that is already a full destination name.
+     */
+    fun search(query: String): List<Destination> {
+        val q = query.trim()
+        if (q.isEmpty() || all.any { it.name.equals(q, ignoreCase = true) }) return emptyList()
+        return all
+            .filter { it.name.contains(q, ignoreCase = true) || it.region.contains(q, ignoreCase = true) }
+            .sortedByDescending { it.name.startsWith(q, ignoreCase = true) }
+    }
+
     /** Returns a known destination, or a generic placeholder for free-text input. */
     fun findOrGeneric(name: String): Destination = byName(name) ?: generic(name.trim())
 
@@ -131,4 +145,10 @@ object MockDestinations {
             )
         },
     )
+}
+
+/** Suggestions from the built-in destinations; needs no network. */
+class LocalDestinationSearch : DestinationSearch {
+    override suspend fun search(query: String): List<DestinationSuggestion> =
+        MockDestinations.search(query).map { DestinationSuggestion(it.name, it.region) }
 }

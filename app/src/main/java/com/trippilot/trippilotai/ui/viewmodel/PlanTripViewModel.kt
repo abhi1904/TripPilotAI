@@ -10,10 +10,14 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.trippilot.trippilotai.data.AppContainer
 import com.trippilot.trippilotai.data.TripDraftStore
 import com.trippilot.trippilotai.data.mock.MockItineraryGenerator
+import com.trippilot.trippilotai.domain.model.DestinationSuggestion
 import com.trippilot.trippilotai.domain.model.Interest
 import com.trippilot.trippilotai.domain.model.TripRequest
+import com.trippilot.trippilotai.domain.repository.DestinationSearch
 import com.trippilot.trippilotai.domain.repository.ItineraryGenerator
 import com.trippilot.trippilotai.navigation.Routes
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,6 +28,7 @@ enum class PlanField { DESTINATION, DATES, INTERESTS }
 
 data class PlanTripUiState(
     val destination: String = "",
+    val suggestions: List<DestinationSuggestion> = emptyList(),
     val startDateMillis: Long? = null,
     val endDateMillis: Long? = null,
     val travellers: Int = 2,
@@ -40,6 +45,7 @@ class PlanTripViewModel(
     savedStateHandle: SavedStateHandle,
     private val generator: ItineraryGenerator,
     private val draftStore: TripDraftStore,
+    private val destinationSearch: DestinationSearch,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -47,8 +53,32 @@ class PlanTripViewModel(
     )
     val uiState: StateFlow<PlanTripUiState> = _uiState.asStateFlow()
 
-    fun onDestinationChange(value: String) = _uiState.update {
-        it.copy(destination = value, errors = it.errors - PlanField.DESTINATION)
+    private var searchJob: Job? = null
+
+    /** The user typed: keeps current suggestions until new ones arrive, so the list doesn't flicker. */
+    fun onDestinationTyped(value: String) {
+        searchJob?.cancel()
+        _uiState.update { state ->
+            state.copy(
+                destination = value,
+                suggestions = if (value.isBlank()) emptyList() else state.suggestions,
+                errors = state.errors - PlanField.DESTINATION,
+            )
+        }
+        if (value.isBlank()) return
+        searchJob = viewModelScope.launch {
+            delay(SEARCH_DEBOUNCE_MILLIS)
+            val suggestions = destinationSearch.search(value)
+            _uiState.update { it.copy(suggestions = suggestions) }
+        }
+    }
+
+    /** The user picked a destination outright, so there is nothing left to suggest. */
+    fun onDestinationPicked(value: String) {
+        searchJob?.cancel()
+        _uiState.update {
+            it.copy(destination = value, suggestions = emptyList(), errors = it.errors - PlanField.DESTINATION)
+        }
     }
 
     fun onDatesChange(start: Long?, end: Long?) = _uiState.update {
@@ -90,6 +120,7 @@ class PlanTripViewModel(
     fun onNavigated() = _uiState.update { it.copy(generatedPlanReady = false) }
 
     companion object {
+        private const val SEARCH_DEBOUNCE_MILLIS = 300L
         const val MIN_TRAVELLERS = 1
         const val MAX_TRAVELLERS = 12
         const val BUDGET_FLOOR = 10_000
@@ -110,7 +141,7 @@ class PlanTripViewModel(
 
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
-                PlanTripViewModel(createSavedStateHandle(), AppContainer.itineraryGenerator, AppContainer.draftStore)
+                PlanTripViewModel(createSavedStateHandle(), AppContainer.itineraryGenerator, AppContainer.draftStore, AppContainer.destinationSearch)
             }
         }
     }

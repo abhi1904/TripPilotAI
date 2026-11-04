@@ -2,12 +2,16 @@ package com.trippilot.trippilotai.data
 
 import com.trippilot.trippilotai.BuildConfig
 import com.trippilot.trippilotai.data.mock.InMemoryTripRepository
+import com.trippilot.trippilotai.data.mock.LocalDestinationSearch
 import com.trippilot.trippilotai.data.mock.MockItineraryGenerator
 import com.trippilot.trippilotai.data.mock.MockTravelAssistant
 import com.trippilot.trippilotai.data.mock.SimulatedPaymentProcessor
 import com.trippilot.trippilotai.data.mock.sampleTrips
+import com.trippilot.trippilotai.data.remote.PhotonApi
+import com.trippilot.trippilotai.data.remote.PhotonDestinationSearch
 import com.trippilot.trippilotai.data.remote.RemoteTripRepository
 import com.trippilot.trippilotai.data.remote.TripPilotApi
+import com.trippilot.trippilotai.domain.repository.DestinationSearch
 import com.trippilot.trippilotai.domain.repository.ItineraryGenerator
 import com.trippilot.trippilotai.domain.repository.PaymentProcessor
 import com.trippilot.trippilotai.domain.repository.TravelAssistant
@@ -29,6 +33,9 @@ object AppContainer
     /** Lives as long as the app, so background saves aren't cancelled when a screen closes. */
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    val destinationSearch: DestinationSearch by lazy {
+        PhotonDestinationSearch(PhotonApi.create(), LocalDestinationSearch())
+    }
     val itineraryGenerator: ItineraryGenerator = mockGenerator
     val travelAssistant: TravelAssistant = MockTravelAssistant()
     val paymentProcessor: PaymentProcessor = SimulatedPaymentProcessor()
